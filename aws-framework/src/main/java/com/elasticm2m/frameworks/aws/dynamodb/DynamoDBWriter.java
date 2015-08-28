@@ -70,11 +70,11 @@ public class DynamoDBWriter extends ElasticBaseRichBolt {
         table = dynamoDB.getTable(tableName);
         if ( null == table ) {
             logger.error("Table " + tableName + " does not exist");
-//            throw new IllegalStateException("Table " + tableName + " does not exist");
+            throw new IllegalStateException("Table " + tableName + " does not exist");
         }
         if ( null == primaryKeyProperty ) {
             logger.error("PrimaryKeyProperty is not specified");
-//            throw new IllegalStateException("PrimaryKeyProperty is not specified");
+            throw new IllegalStateException("PrimaryKeyProperty is not specified");
         }
         List<KeySchemaElement> keys = table.describe().getKeySchema();
         paths = primaryKeyProperty.split("\\.");
@@ -84,16 +84,16 @@ public class DynamoDBWriter extends ElasticBaseRichBolt {
             String msg = new StringBuilder()
                     .append("Table ").append(tableName)
                     .append(" does not have a primary key named [").append(pkeyName).append("]")
-                    .append(" instead is is called [").append(realKeyName).append("]").toString();
-            logger.info(msg);
-//            throw new IllegalStateException(msg);
+                    .append(" instead it is called [").append(realKeyName).append("]").toString();
+            logger.error(msg);
+            throw new IllegalStateException(msg);
         }
         if ( null != rangeKeyProperty ) {
             rangePaths = rangeKeyProperty.split("\\.");
             rangePkeyName = rangePaths[ rangePaths.length - 1 ];
             if (keys.size() < 2 ) {
-                logger.info("Range key supplied, but table " + tableName + " does not have a range key");
-//                throw new IllegalStateException("Range key supplied, but table " + tableName + " does not have a range key");
+                logger.error("Range key supplied, but table " + tableName + " does not have a range key");
+                throw new IllegalStateException("Range key supplied, but table " + tableName + " does not have a range key");
             }
             else {
                 String realRangeKeyName = keys.get(1).getAttributeName();
@@ -101,9 +101,9 @@ public class DynamoDBWriter extends ElasticBaseRichBolt {
                     String msg = new StringBuilder()
                             .append("Table ").append(tableName)
                             .append(" does not have a range key named [").append(rangePkeyName).append("]")
-                            .append(" instead is is called [").append(realRangeKeyName).append("]").toString();
-                    logger.info(msg);
-//                    throw new IllegalStateException(msg);
+                            .append(" instead it is called [").append(realRangeKeyName).append("]").toString();
+                    logger.error(msg);
+                    throw new IllegalStateException(msg);
                 }
             }
         }
