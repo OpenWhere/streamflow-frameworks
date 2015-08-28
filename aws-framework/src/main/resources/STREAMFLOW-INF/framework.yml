@@ -128,7 +128,19 @@ components:
          description: DynamoDB table to write records to
          defaultValue:
          required: true
-       - name: log-tupple
+       - name: primary-key-property
+         label: Primary Key Property Name
+         type: text
+         description: The primary key field to extract values from Json. Can be nested with period
+         defaultValue:
+         required: true
+       - name: range-key-property
+         label: Range Key Property Name
+         type: text
+         description: Range key property name to extract values from Json. Can be nested with period
+         defaultValue:
+         required: false
+       - name: log-tuple
          label: Log Tupple
          type: boolean
          required: true
