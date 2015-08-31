@@ -148,3 +148,43 @@ components:
      inputs:
        - key: default
          description: Generic
+
+   - name: aws-s3-bolt
+     label: S3 Writer
+     type: storm-bolt
+     description: Writes data to the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3Writer
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to push records to
+         defaultValue:
+         required: true
+       - name: s3-default-folder
+         label: Default Folder
+         type: text
+         description: Folder prefix
+         defaultValue:
+         required: false
+       - name: path-key-property
+         label: Path Property to look in Json for
+         type: text
+         description: Key Path
+         defaultValue:
+         required: true
+       - name: path2-property
+         label: 2nd Path Property to look in Json for
+         type: text
+         description: 2nd Key Path
+         defaultValue:
+         required: false
+       - name: log-tuple
+         label: Log Tuple
+         type: boolean
+         required: true
+         defaultValue: false
+     inputs:
+       - key: default
+         description: Generic
