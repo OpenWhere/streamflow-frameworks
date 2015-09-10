@@ -167,24 +167,69 @@ components:
          type: text
          description: Folder prefix
          defaultValue:
-         required: false
-       - name: path-key-property
-         label: Path Property to look in Json for
-         type: text
-         description: Key Path
-         defaultValue:
          required: true
-       - name: path2-property
-         label: 2nd Path Property to look in Json for
-         type: text
-         description: 2nd Key Path
-         defaultValue:
-         required: false
-       - name: log-tuple
-         label: Log Tuple
-         type: boolean
+       - name: bolt_s3_batch
+         label: Maximum Batch Size
+         type: Integer
          required: true
-         defaultValue: false
+         defaultValue: 500
+       - name: bolt_s3_min_batch
+         label: Minimum Batch Size
+         type: Integer
+         required: true
+         defaultValue: 25
+       - name: bolt_s3_sleep
+         label: Sleep Time (seconds)
+         type: Integer
+         required: true
+         defaultValue: 5
      inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-s3-reader
+     label: S3 Reader
+     type: storm-spout
+     description: Writes data to the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3Reader
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to read records from
+         defaultValue:
+         required: true
+       - name: s3-from-date
+         label: From Date (inclusive)
+         type: text
+         description: Start date to look for in S3 objects
+         required: true
+         defaultValue:
+       - name: s3-to-date
+         label: To Date (exclusive)
+         type: text
+         description: End date to look for in S3 objects
+         required: false
+         defaultValue:
+       - name: is-continuous
+         label: Ignore toDate?
+         type: boolean
+         description: Signals to ignore toDate and continue processing new records
+         required: true
+         defaultValue:
+       - name: is-json
+         label: Are Objects JSON?
+         type: boolean
+         description: Indicated S3 bucket objects are JSON Strings
+         required: true
+         defaultValue:
+       - name: is-gzip
+         label: Are Objects Gzipped?
+         type: boolean
+         description: Indicates S3 objects are gzipped
+         required: true
+         defaultValue:
+     outputs:
        - key: default
          description: Generic
