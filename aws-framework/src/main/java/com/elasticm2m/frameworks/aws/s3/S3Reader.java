@@ -155,8 +155,7 @@ public class S3Reader extends ElasticBaseRichSpout {
             DateTime lastModified = new DateTime(summary.getLastModified().getTime(), DateTimeZone.UTC);
             if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;
             S3Object s3Object = s3Service.getObject(new GetObjectRequest(bucketName, summary.getKey()));
-            InputStream is = s3Object.getObjectContent();
-            try {
+            try (InputStream is = s3Object.getObjectContent()) {
                 if (isJson) {
                     JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);
                     if (data.isArray()) {
@@ -169,11 +168,6 @@ public class S3Reader extends ElasticBaseRichSpout {
                 }
             } catch (IOException e) {
                 logger.error("Error in getNextObject()", e);
-            } finally {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                }
             }
         }
     }
