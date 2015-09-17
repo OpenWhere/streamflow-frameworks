@@ -54,6 +54,7 @@ public class S3Reader extends ElasticBaseRichSpout {
     private boolean isContinuous;
     private String fromDate;
     private String toDate;
+    private Integer stableSeconds;
     private DateTime fromDateTime, toDateTime;
     private int objectIndex;
     private ObjectListing metadata;
@@ -87,6 +88,11 @@ public class S3Reader extends ElasticBaseRichSpout {
         this.isJson = isJson;
     }
 
+    @Inject
+    public void setStableSeconds(@Named("stable-seconds") Integer stableSeconds) {
+        this.stableSeconds = stableSeconds;
+    }
+
     @Inject(optional = true)
     public void setIsGzip(@Named("is-gzip") boolean isGzip) {
         this.isGzip = isGzip;
@@ -116,6 +122,7 @@ public class S3Reader extends ElasticBaseRichSpout {
                 objectIndex = 0;
             } else {
                 // start over
+                logger.info("Starting bucket scan");
                 metadata = s3Service.listObjects(bucketName);
                 s3Objects = filterListing(metadata);
                 objectIndex = 0;
@@ -140,6 +147,10 @@ public class S3Reader extends ElasticBaseRichSpout {
 
         if (objectIndex < s3Objects.size() ) {
             S3ObjectSummary summary = s3Objects.get(objectIndex++);
+            if ( DateTime.now().minusSeconds(stableSeconds).isBefore( new DateTime(summary.getLastModified().getTime()) ) ) {
+                logger.info("Waiting {} seconds for S3 Object to stabilize", stableSeconds);
+                Utils.sleep(stableSeconds * 1000);
+            }
             logger.info("Processing S3 object {}", summary.getKey());
             DateTime lastModified = new DateTime(summary.getLastModified().getTime(), DateTimeZone.UTC);
             if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;

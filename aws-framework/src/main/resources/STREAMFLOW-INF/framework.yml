@@ -200,6 +200,12 @@ components:
          description: S3 bucket to read records from
          defaultValue:
          required: true
+       - name: stable-seconds
+         label: Object Stability Time (seconds)
+         type: Integer
+         description: Last modifed must be at least this old
+         required: true
+         defaultValue: 60
        - name: s3-from-date
          label: From Date (inclusive)
          type: text
