@@ -21,8 +21,6 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Singleton
 public class ProcessingService extends AbstractExecutionThreadService implements IRecordProcessorFactory {
@@ -34,11 +32,12 @@ public class ProcessingService extends AbstractExecutionThreadService implements
     private InitialPositionInStream initialPosition;
     private final Logger logger;
     private Worker worker;
+    private String regionName;
 
     @Inject
     public ProcessingService(AWSCredentialsProvider credentialsProvider,
                              BlockingQueue<Record> queue, String applicationName, String streamName,
-                             InitialPositionInStream initialPosition, Logger logger) {
+                             InitialPositionInStream initialPosition, Logger logger, String regionName) {
         super();
         this.credentialsProvider = credentialsProvider;
         this.queue = queue;
@@ -46,6 +45,7 @@ public class ProcessingService extends AbstractExecutionThreadService implements
         this.streamName = streamName;
         this.initialPosition = initialPosition;
         this.logger = logger;
+        this.regionName = regionName;
     }
 
     @Override
@@ -69,7 +69,7 @@ public class ProcessingService extends AbstractExecutionThreadService implements
 
         KinesisClientLibConfiguration kinesisClientLibConfig =
                 new KinesisClientLibConfiguration(applicationName, streamName, credentialsProvider, workerId)
-                        .withInitialPositionInStream(initialPosition);
+                        .withInitialPositionInStream(initialPosition).withRegionName(regionName);
         worker = new Worker(this, kinesisClientLibConfig);
     }
 

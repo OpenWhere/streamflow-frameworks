@@ -6,6 +6,8 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
@@ -33,10 +35,16 @@ public class DynamoDBWriter extends ElasticBaseRichBolt {
     private String rangeKeyProperty;
     private String[] rangePaths;
     private String rangePkeyName;
+    private String regionName;
 
     @Inject
     public void setTableName(@Named("dynamodb-table-name") String tableName) {
         this.tableName = tableName;
+    }
+
+    @Inject(optional = true)
+    public void setRegionName(@Named("dynamodb-region-name") String regionName) {
+        this.regionName = regionName;
     }
 
     @Inject
@@ -63,9 +71,13 @@ public class DynamoDBWriter extends ElasticBaseRichBolt {
         credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
         if (credentialsProvider == null) {
-            dynamoDB = new DynamoDB(new AmazonDynamoDBClient());
+            Region region = Region.getRegion( Regions.fromName(regionName) );
+            AmazonDynamoDBClient client = new AmazonDynamoDBClient().withRegion( region );
+            dynamoDB = new DynamoDB(client);
         } else {
-            dynamoDB = new DynamoDB(new AmazonDynamoDBClient(credentialsProvider));
+            Region region = Region.getRegion( Regions.fromName(regionName) );
+            AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentialsProvider).withRegion( region );
+            dynamoDB = new DynamoDB(client);
         }
         table = dynamoDB.getTable(tableName);
         if ( null == table ) {
