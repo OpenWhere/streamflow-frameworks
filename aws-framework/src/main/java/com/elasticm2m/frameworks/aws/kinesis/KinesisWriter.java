@@ -24,11 +24,15 @@ public class KinesisWriter extends ElasticBaseRichBolt {
     private String partitionKey;
     private AmazonKinesis kinesis;
     private boolean logTuple = false;
+    private String regionName;
 
     @Inject
     public void setStreamName(@Named("kinesis-stream-name") String streamName) {
         this.streamName = streamName;
     }
+
+    @Inject(optional = true)
+    public void setRegionName(@Named("kinesis-region-name") String regionName) { this.regionName = regionName; }
 
     @Inject
     public void setPartitionKey(@Named("kinesis-partition-key") String partitionKey) {
@@ -52,14 +56,17 @@ public class KinesisWriter extends ElasticBaseRichBolt {
         super.prepare(conf, topologyContext, collector);
 
         logger.info("Kinesis Writer: Stream Name = " + streamName
-                + ", Partition Key = " + partitionKey);
+                + ", Partition Key = " + partitionKey
+                + ", Region Name = " + regionName);
 
         credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
         if (credentialsProvider == null) {
             kinesis = new AmazonKinesisAsyncClient();
+            kinesis.setEndpoint("kinesis." + regionName + ".amazonaws.com");
         } else {
             kinesis = new AmazonKinesisClient(credentialsProvider);
+            kinesis.setEndpoint("kinesis." + regionName + ".amazonaws.com");
         }
     }
 

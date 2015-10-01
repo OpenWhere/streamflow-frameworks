@@ -26,6 +26,7 @@ public class KinesisReader extends ElasticBaseRichSpout {
     private AWSCredentialsProvider credentialsProvider;
     private ProcessingService processingService;
     private int queueCapacity;
+    private String regionName;
 
     private LinkedBlockingQueue<Record> queue;
 
@@ -38,6 +39,9 @@ public class KinesisReader extends ElasticBaseRichSpout {
     public void setStreamName(@Named("kinesis-stream-name") String streamName) {
         this.streamName = streamName;
     }
+
+    @Inject(optional = true)
+    public void setRegionName(@Named("kinesis-region-name") String regionName) { this.regionName = regionName; }
 
     @Inject(optional = true)
     public void setInitialPosition(@Named("kinesis-initial-position") String initialPosition) {
@@ -64,6 +68,7 @@ public class KinesisReader extends ElasticBaseRichSpout {
         super.open(conf, topologyContext, collector);
 
         logger.info("Kinesis Reader: Stream Name = " + streamName
+                + ", Region Name = " + regionName
                 + ", Application Name = " + applicationName
                 + ", Initial Position = " + initialPosition
                 + ", Is Reliable = " + isReliable);
@@ -75,8 +80,8 @@ public class KinesisReader extends ElasticBaseRichSpout {
 
         processingService = new ProcessingService(
                 credentialsProvider, queue, applicationName, streamName,
-                InitialPositionInStream.valueOf(initialPosition), logger);
-        processingService.startAsync();
+                InitialPositionInStream.valueOf(initialPosition), logger, regionName);
+         processingService.startAsync();
     }
 
     @Override
