@@ -6,6 +6,8 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisAsyncClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
@@ -63,10 +65,10 @@ public class KinesisWriter extends ElasticBaseRichBolt {
 
         if (credentialsProvider == null) {
             kinesis = new AmazonKinesisAsyncClient();
-            kinesis.setEndpoint("kinesis." + regionName + ".amazonaws.com");
+            kinesis.setRegion(Region.getRegion(Regions.fromName(regionName)));
         } else {
             kinesis = new AmazonKinesisClient(credentialsProvider);
-            kinesis.setEndpoint("kinesis." + regionName + ".amazonaws.com");
+            kinesis.setRegion(Region.getRegion(Regions.fromName(regionName)));
         }
     }
 
