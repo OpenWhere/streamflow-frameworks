@@ -155,16 +155,20 @@ public class S3Reader extends ElasticBaseRichSpout {
             DateTime lastModified = new DateTime(summary.getLastModified().getTime(), DateTimeZone.UTC);
             if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;
             S3Object s3Object = s3Service.getObject(new GetObjectRequest(bucketName, summary.getKey()));
+            int sz = isJson ? jsonQueue.size() : byteQueue.size();
             try (InputStream is = s3Object.getObjectContent()) {
                 if (isJson) {
                     JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);
                     if (data.isArray()) {
                         data.forEach(jsonQueue::offer);
+                        logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
                     } else {
                         jsonQueue.offer(data);
+                        logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
                     }
                 } else {
                     byteQueue.offer(readData(isGzip ? new GZIPInputStream(is) : is, s3Object.getObjectMetadata().getContentLength()));
+                    logger.info("Found {} records in {}, new queue size is {}", byteQueue.size() - sz, summary.getKey(), byteQueue.size());
                 }
             } catch (IOException e) {
                 logger.error("Error in getNextObject()", e);
@@ -188,10 +192,10 @@ public class S3Reader extends ElasticBaseRichSpout {
     protected Runnable getTask() {
         return () -> {
             if (isJson) {
-                if (jsonQueue.size() <= 50) getNextObject();
+                if (jsonQueue.size() <= 100) getNextObject();
             }
             else {
-                if (byteQueue.size() <= 50) getNextObject();
+                if (byteQueue.size() <= 100) getNextObject();
             }
         };
     }
@@ -223,7 +227,7 @@ public class S3Reader extends ElasticBaseRichSpout {
         getNextListing();
         getNextObject();
         executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate( getTask(), 0, 5, TimeUnit.SECONDS );
+        executorService.scheduleAtFixedRate( getTask(), 0, 100, TimeUnit.MILLISECONDS );
     }
 
     public List<Object> getJsonTuple(JsonNode node) {
