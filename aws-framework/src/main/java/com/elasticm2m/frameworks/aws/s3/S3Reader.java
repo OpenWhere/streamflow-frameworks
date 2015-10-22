@@ -192,10 +192,10 @@ public class S3Reader extends ElasticBaseRichSpout {
     protected Runnable getTask() {
         return () -> {
             if (isJson) {
-                if (jsonQueue.size() <= 50) getNextObject();
+                if (jsonQueue.size() <= 100) getNextObject();
             }
             else {
-                if (byteQueue.size() <= 50) getNextObject();
+                if (byteQueue.size() <= 100) getNextObject();
             }
         };
     }
@@ -227,7 +227,7 @@ public class S3Reader extends ElasticBaseRichSpout {
         getNextListing();
         getNextObject();
         executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate( getTask(), 0, 5, TimeUnit.SECONDS );
+        executorService.scheduleAtFixedRate( getTask(), 0, 100, TimeUnit.MILLISECONDS );
     }
 
     public List<Object> getJsonTuple(JsonNode node) {
