@@ -128,6 +128,7 @@ public class S3Reader extends ElasticBaseRichSpout {
                 objectIndex = 0;
             }
         } catch (Throwable t) {
+            metadata = null;
             logger.error("Error in getNextListing", t);
         }
     }
