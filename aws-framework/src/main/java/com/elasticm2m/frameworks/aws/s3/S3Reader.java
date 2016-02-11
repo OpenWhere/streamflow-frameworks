@@ -191,11 +191,14 @@ public class S3Reader extends ElasticBaseRichSpout {
 
     protected Runnable getTask() {
         return () -> {
-            if (isJson) {
-                if (jsonQueue.size() <= 100) getNextObject();
-            }
-            else {
-                if (byteQueue.size() <= 100) getNextObject();
+            try {
+                if (isJson) {
+                    if (jsonQueue.size() <= 100) getNextObject();
+                } else {
+                    if (byteQueue.size() <= 100) getNextObject();
+                }
+            } catch (Throwable t) {
+                logger.error("Error in load task", t);
             }
         };
     }
