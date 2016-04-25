@@ -114,6 +114,59 @@ components:
        - key: default
          description: Generic
 
+   - name: aws-cloudwatch-bolt
+     label: AWS Cloudwatch Reporter
+     type: storm-bolt
+     description: Reports throughput it sees to cloudwatch
+     mainClass: com.elasticm2m.frameworks.aws.cloudwatch.CloudWatchReporter
+     icon: icons/cloudwatch.png
+     properties:
+       - name: cloudwatch-environment
+         label: Environment Name
+         type: text
+         description: Name of the environment this topology is running
+         defaultValue:
+         required: true
+       - name: cloudwatch-name
+         label: Name of metric
+         type: text
+         description: Name to report this metric as
+         defaultValue:
+         required: true
+       - name: cloudwatch-namespace
+         label: Namespace of metric
+         type: text
+         description: Cloudwatch Namespace where this metric falls
+         defaultValue:
+         required: true
+       - name: cloudwatch-region-name
+         label: Region Name
+         type: select
+         description: Kinesis Region to process records from
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
+       - name: report-frequency
+         label: Minute frequency to report to Cloudwatch
+         type: Integer
+         required: true
+         defaultValue: 1
+     outputs:
+       - key: default
+         description: Generic
+
    - name: aws-kinesis-firehose-bolt
      label: Kinesis Firehose Writer
      type: storm-bolt
@@ -196,9 +249,9 @@ components:
      inputs:
        - key: default
          description: Generic
-    outputs:
-      - key: default
-        description: Generic
+     outputs:
+       - key: default
+         description: Generic
 
    - name: aws-lambda-writer-bolt
      label: AWS Lambda Writer
@@ -213,28 +266,6 @@ components:
          description: The name of the Lambda Function to invoke
          defaultValue:
          required: true
-     inputs:
-       - key: default
-         description: Generic
-
-   - name: aws-dynamodb-bolt
-     label: DynamoDB Writer
-     type: storm-bolt
-     description: Writes data to the specified DynamoDB table
-     mainClass: com.elasticm2m.frameworks.aws.dynamodb.DynamoDBWriter
-     icon: icons/Database_DynamoDB.png
-     properties:
-       - name: dynamodb-table-name
-         label: Table Name
-         type: text
-         description: DynamoDB table to write records to
-         defaultValue:
-         required: true
-       - name: log-tupple
-         label: Log Tupple
-         type: boolean
-         required: true
-         defaultValue: false
      inputs:
        - key: default
          description: Generic
