@@ -163,6 +163,9 @@ components:
          type: Integer
          required: true
          defaultValue: 1
+     inputs:
+       - key: default
+         description: Generic
      outputs:
        - key: default
          description: Generic
