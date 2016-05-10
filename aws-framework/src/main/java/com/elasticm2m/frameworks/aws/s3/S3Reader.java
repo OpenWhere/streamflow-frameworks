@@ -2,8 +2,6 @@ package com.elasticm2m.frameworks.aws.s3;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import com.amazonaws.AmazonClientException;
@@ -19,6 +17,7 @@ import com.elasticm2m.frameworks.common.base.ElasticBaseRichSpout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -31,6 +30,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,6 +51,7 @@ public class S3Reader extends ElasticBaseRichSpout {
     private AmazonS3 s3Service;
     private boolean isGzip;
     private boolean isJson;
+    private boolean isDelimited;
     private boolean isContinuous;
     private String fromDate;
     private String toDate;
@@ -84,8 +85,13 @@ public class S3Reader extends ElasticBaseRichSpout {
     }
 
     @Inject
-    public void setIsJson(@Named("is-json") boolean isJson) {
+     public void setIsJson(@Named("is-json") boolean isJson) {
         this.isJson = isJson;
+    }
+
+    @Inject
+    public void setIsDelimited(@Named("is-delimited") boolean isDelimited) {
+        this.isDelimited = isDelimited;
     }
 
     @Inject
@@ -134,7 +140,18 @@ public class S3Reader extends ElasticBaseRichSpout {
     }
 
     private JsonNode readJsonData(InputStream is) throws IOException {
-        return objectMapper.readValue(is, JsonNode.class);
+        if(isDelimited){
+            Scanner scanner = new Scanner(is).useDelimiter("\\n");
+            ArrayNode listNode = objectMapper.createArrayNode();
+            while (scanner.hasNext()){
+                JsonNode node = objectMapper.readValue(scanner.next(), JsonNode.class);
+                listNode.add(node);
+            }
+            return listNode;
+        }
+        else{
+            return objectMapper.readValue(is, JsonNode.class);
+        }
     }
 
     private byte[] readData(InputStream is, long len) throws IOException {

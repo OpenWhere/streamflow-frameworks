@@ -407,6 +407,12 @@ components:
          description: Indicated S3 bucket objects are JSON Strings
          required: true
          defaultValue:
+       - name: is-delimited
+         label: Are JSON Objects delimited by newlines vs a JSON array?
+         type: boolean
+         description: Indicated storage pattern in S3 such as from Kinesis Firehose
+         required: true
+         defaultValue:
        - name: is-gzip
          label: Are Objects Gzipped?
          type: boolean
