@@ -109,7 +109,7 @@ public class S3Reader extends ElasticBaseRichSpout {
         if ( !isContinuous && null != toDateTime ) {
             return !date.isBefore(fromDateTime) && date.isBefore(toDateTime);
         } else {
-            return !date.isBefore(fromDateTime);
+            return date.isAfter(fromDateTime);
         }
     }
 
@@ -128,9 +128,11 @@ public class S3Reader extends ElasticBaseRichSpout {
                 objectIndex = 0;
             } else {
                 // start over
-                logger.info("Starting bucket scan");
                 metadata = s3Service.listObjects(bucketName);
                 s3Objects = filterListing(metadata);
+                if (s3Objects.size() > 0){
+                    logger.info("Starting Bucket scan and new objects found");
+                }
                 objectIndex = 0;
             }
         } catch (Throwable t) {
@@ -172,6 +174,7 @@ public class S3Reader extends ElasticBaseRichSpout {
             logger.info("Processing S3 object {}", summary.getKey());
             DateTime lastModified = new DateTime(summary.getLastModified().getTime(), DateTimeZone.UTC);
             if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;
+            logger.info("From date is now {}", fromDateTime);
             S3Object s3Object = s3Service.getObject(new GetObjectRequest(bucketName, summary.getKey()));
             int sz = isJson ? jsonQueue.size() : byteQueue.size();
             try (InputStream is = s3Object.getObjectContent()) {
