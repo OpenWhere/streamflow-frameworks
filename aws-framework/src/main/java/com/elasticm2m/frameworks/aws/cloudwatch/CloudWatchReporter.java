@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
@@ -16,6 +17,7 @@ import com.elasticm2m.frameworks.common.base.ElasticBaseRichBolt;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -99,7 +101,11 @@ public class CloudWatchReporter extends ElasticBaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         try{
-            collector.emit(tuple, tuple.getValues());
+            List<Object> values = new Values();
+            values.add(tuple.getValue(0));
+            values.add(tuple.getValue(1));
+            values.add(tuple.getValue(2));
+            collector.emit(tuple, values);
             registry.meter(metricName).mark();
         }
         catch(Throwable t){
