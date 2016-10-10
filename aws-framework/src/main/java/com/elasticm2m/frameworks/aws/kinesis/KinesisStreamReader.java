@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class KinesisReader extends ElasticBaseRichSpout {
+public class KinesisStreamReader extends ElasticBaseRichSpout {
 
     private String applicationName;
     private String streamName;
@@ -25,8 +25,10 @@ public class KinesisReader extends ElasticBaseRichSpout {
     private boolean isReliable = false;
     private AWSCredentialsProvider credentialsProvider;
     private ProcessingService processingService;
+    private int queueCapacity;
+    private String regionName;
 
-    private final LinkedBlockingQueue<Record> queue = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<Record> queue;
 
     @Inject
     public void setApplicationName(@Named("kinesis-application-name") String applicationName) {
@@ -37,6 +39,9 @@ public class KinesisReader extends ElasticBaseRichSpout {
     public void setStreamName(@Named("kinesis-stream-name") String streamName) {
         this.streamName = streamName;
     }
+
+    @Inject(optional = true)
+    public void setRegionName(@Named("kinesis-region-name") String regionName) { this.regionName = regionName; }
 
     @Inject(optional = true)
     public void setInitialPosition(@Named("kinesis-initial-position") String initialPosition) {
@@ -53,11 +58,17 @@ public class KinesisReader extends ElasticBaseRichSpout {
         this.credentialsProvider = credentialsProvider;
     }
 
+    @Inject
+    public void setQueueCapacity(@Named("queue-capacity") int queueCapacity) {
+        this.queueCapacity = queueCapacity;
+    }
+
     @Override
     public void open(Map conf, TopologyContext topologyContext, SpoutOutputCollector collector) {
         super.open(conf, topologyContext, collector);
 
         logger.info("Kinesis Reader: Stream Name = " + streamName
+                + ", Region Name = " + regionName
                 + ", Application Name = " + applicationName
                 + ", Initial Position = " + initialPosition
                 + ", Is Reliable = " + isReliable);
@@ -65,10 +76,12 @@ public class KinesisReader extends ElasticBaseRichSpout {
         // Use the default credentials provider 
         credentialsProvider = new DefaultAWSCredentialsProviderChain();
 
+        queue = new LinkedBlockingQueue<>(queueCapacity);
+
         processingService = new ProcessingService(
                 credentialsProvider, queue, applicationName, streamName,
-                InitialPositionInStream.valueOf(initialPosition), logger);
-        processingService.startAsync();
+                InitialPositionInStream.valueOf(initialPosition), logger, regionName);
+         processingService.startAsync();
     }
 
     @Override

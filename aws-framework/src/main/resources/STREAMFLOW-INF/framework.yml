@@ -6,11 +6,11 @@ description: Spouts and Bolts used to integrate with various AWS products
 components:
 
    - name: aws-kinesis-spout
-     label: Kinesis Reader
+     label: Kinesis Stream Reader
      type: storm-spout
      description: Reads data from the specified Kinesis stream
-     mainClass: com.elasticm2m.frameworks.core.kinesis.KinesisReader
-     icon: icons/aws.png
+     mainClass: com.elasticm2m.frameworks.aws.kinesis.KinesisStreamReader
+     icon: icons/Analytics_Kinesis_Streams.png
      properties:
        - name: kinesis-application-name
          label: Application Name
@@ -34,21 +34,45 @@ components:
              listItems:
                - TRIM_HORIZON
                - LATEST
+       - name: kinesis-region-name
+         label: Region Name
+         type: select
+         description: Kinesis Region to process records from
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
        - name: is-reliable
          label: Is Reliable
          type: boolean
          description: Determines if the stream is reliable and only deletes fully processed messages
          defaultValue: false
+       - name: queue-capacity
+         label: Queue Capacity
+         type: number
+         description: The capacity of the internal record queue.
+         defaultValue: 10000
      outputs:
        - key: default
          description: Generic
 
    - name: aws-kinesis-bolt
-     label: Kinesis Writer
+     label: Kinesis Stream Writer
      type: storm-bolt
      description: Writes data to the specified Kinesis stream
-     mainClass: com.elasticm2m.frameworks.core.kinesis.KinesisWriter
-     icon: icons/aws.png
+     mainClass: com.elasticm2m.frameworks.aws.kinesis.KinesisStreamWriter
+     icon: icons/Analytics_Kinesis_Streams.png
      properties:
        - name: kinesis-stream-name
          label: Stream Name
@@ -59,9 +83,116 @@ components:
        - name: kinesis-partition-key
          label: Partition Key
          type: text
-         description: Kinesis stream to process records from
+         description: Fixed partition key to use when putting records
          defaultValue:
          required: true
+       - name: log-tuple
+         label: Log Tupple
+         type: boolean
+         required: true
+         defaultValue: false
+       - name: kinesis-region-name
+         label: Region Name
+         type: select
+         description: Kinesis Region to process records from
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
+     inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-cloudwatch-bolt
+     label: AWS Cloudwatch Reporter
+     type: storm-bolt
+     description: Reports throughput it sees to cloudwatch
+     mainClass: com.elasticm2m.frameworks.aws.cloudwatch.CloudWatchReporter
+     icon: icons/cloudwatch.png
+     properties:
+       - name: cloudwatch-environment
+         label: Environment Name
+         type: text
+         description: Name of the environment this topology is running
+         defaultValue:
+         required: true
+       - name: cloudwatch-name
+         label: Name of metric
+         type: text
+         description: Name to report this metric as
+         defaultValue:
+         required: true
+       - name: cloudwatch-namespace
+         label: Namespace of metric
+         type: text
+         description: Cloudwatch Namespace where this metric falls
+         defaultValue:
+         required: true
+       - name: cloudwatch-region-name
+         label: Region Name
+         type: select
+         description: Kinesis Region to process records from
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
+       - name: report-frequency
+         label: Minute frequency to report to Cloudwatch
+         type: Integer
+         required: true
+         defaultValue: 1
+     inputs:
+       - key: default
+         description: Generic
+     outputs:
+       - key: default
+         description: Generic
+
+   - name: aws-kinesis-firehose-bolt
+     label: Kinesis Firehose Writer
+     type: storm-bolt
+     description: Writes data to the specified Kinesis Firehose delivery stream
+     mainClass: com.elasticm2m.frameworks.aws.kinesis.KinesisFirehoseWriter
+     icon: icons/Analytics_Kinesis_Firehose.png
+     properties:
+       - name: kinesis-delivery-stream-name
+         label: Delivery Stream Name
+         type: text
+         description: Kinesis Firehose delivery stream to push records to
+         defaultValue:
+         required: true
+       - name: use-record-separator
+         label: Separate records with a new line character
+         type: boolean
+         required: true
+         defaultValue: true
+       - name: log-tuple
+         label: Log Tupple
+         type: boolean
+         required: true
+         defaultValue: false
      inputs:
        - key: default
          description: Generic
@@ -70,8 +201,8 @@ components:
      label: SQS Reader
      type: storm-spout
      description: Reads data from the specified SQS queue
-     mainClass: com.elasticm2m.frameworks.core.sqs.SqsReader
-     icon: icons/aws.png
+     mainClass: com.elasticm2m.frameworks.aws.sqs.SqsReader
+     icon: icons/ApplicationServices_AmazonSQS_Queue.png
      properties:
        - name: sqs-queue-url
          label: SQS Queue URL
@@ -92,8 +223,8 @@ components:
      label: SQS Writer
      type: storm-bolt
      description: Writes data to the specified SQS queue
-     mainClass: com.elasticm2m.frameworks.core.sqs.SqsWriter
-     icon: icons/aws.png
+     mainClass: com.elasticm2m.frameworks.aws.sqs.SqsWriter
+     icon: icons/ApplicationServices_AmazonSQS_Queue.png
      properties:
        - name: sqs-queue-url
          label: SQS Queue URL
@@ -102,5 +233,192 @@ components:
          defaultValue:
          required: true
      inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-lambda-transform-bolt
+     label: AWS Lambda Transform
+     type: storm-bolt
+     description: Transforms a tuple by passing it to an AWS Lambda function
+     mainClass: com.elasticm2m.frameworks.aws.lambda.LambdaTransform
+     icon: icons/Compute_Lambda.png
+     properties:
+       - name: lambda-function-name
+         label: Lambda Function name
+         type: text
+         description: The name of the Lambda Function to invoke
+         defaultValue:
+         required: true
+     inputs:
+       - key: default
+         description: Generic
+     outputs:
+       - key: default
+         description: Generic
+
+   - name: aws-lambda-writer-bolt
+     label: AWS Lambda Writer
+     type: storm-bolt
+     description: Write a tuple to a Lambda Function
+     mainClass: com.elasticm2m.frameworks.aws.lambda.LambdaWriter
+     icon: icons/Compute_Lambda.png
+     properties:
+       - name: lambda-function-name
+         label: Lambda Function name
+         type: text
+         description: The name of the Lambda Function to invoke
+         defaultValue:
+         required: true
+     inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-dynamodb-bolt
+     label: DynamoDB Writer
+     type: storm-bolt
+     description: Writes data to the specified DynamoDB table
+     mainClass: com.elasticm2m.frameworks.aws.dynamodb.DynamoDBWriter
+     icon: icons/Database_DynamoDB.png
+     properties:
+       - name: dynamodb-table-name
+         label: Table Name
+         type: text
+         description: DynamoDB table to write records to
+         defaultValue:
+         required: true
+       - name: primary-key-property
+         label: Primary Key Property Name
+         type: text
+         description: The primary key field to extract values from Json. Can be nested with period
+         defaultValue:
+         required: true
+       - name: range-key-property
+         label: Range Key Property Name
+         type: text
+         description: Range key property name to extract values from Json. Can be nested with period
+         defaultValue:
+         required: false
+       - name: log-tuple
+         label: Log Tupple
+         type: boolean
+         required: true
+         defaultValue: false
+       - name: dynamodb-region-name
+         label: Region Name
+         type: select
+         description: AWS Region to process records to
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
+     inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-s3-bolt
+     label: S3 Writer
+     type: storm-bolt
+     description: Writes data to the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3Writer
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to push records to
+         defaultValue:
+         required: true
+       - name: s3-default-folder
+         label: Default Folder
+         type: text
+         description: Folder prefix
+         defaultValue:
+         required: true
+       - name: bolt_s3_batch
+         label: Maximum Batch Size
+         type: Integer
+         required: true
+         defaultValue: 500
+       - name: bolt_s3_min_batch
+         label: Minimum Batch Size
+         type: Integer
+         required: true
+         defaultValue: 25
+       - name: bolt_s3_sleep
+         label: Sleep Time (seconds)
+         type: Integer
+         required: true
+         defaultValue: 5
+     inputs:
+       - key: default
+         description: Generic
+
+   - name: aws-s3-reader
+     label: S3 Reader
+     type: storm-spout
+     description: Writes data to the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3Reader
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to read records from
+         defaultValue:
+         required: true
+       - name: stable-seconds
+         label: Object Stability Time (seconds)
+         type: Integer
+         description: Last modifed must be at least this old
+         required: true
+         defaultValue: 60
+       - name: s3-from-date
+         label: From Date (inclusive)
+         type: text
+         description: Start date to look for in S3 objects
+         required: true
+         defaultValue:
+       - name: s3-to-date
+         label: To Date (exclusive)
+         type: text
+         description: End date to look for in S3 objects
+         required: false
+         defaultValue:
+       - name: is-continuous
+         label: Ignore toDate?
+         type: boolean
+         description: Signals to ignore toDate and continue processing new records
+         required: true
+         defaultValue:
+       - name: is-json
+         label: Are Objects JSON?
+         type: boolean
+         description: Indicated S3 bucket objects are JSON Strings
+         required: true
+         defaultValue:
+       - name: is-delimited
+         label: Are JSON Objects delimited by newlines vs a JSON array?
+         type: boolean
+         description: Indicated storage pattern in S3 such as from Kinesis Firehose
+         required: true
+         defaultValue:
+       - name: is-gzip
+         label: Are Objects Gzipped?
+         type: boolean
+         description: Indicates S3 objects are gzipped
+         required: true
+         defaultValue:
+     outputs:
        - key: default
          description: Generic
