@@ -11,6 +11,8 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchAsyncClient;
 import com.blacklocus.metrics.CloudWatchReporterBuilder;
+import com.blacklocus.metrics.ContinualCloudWatchBuilder;
+import com.blacklocus.metrics.ContinualCloudWatchReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.elasticm2m.frameworks.common.base.ElasticBaseRichBolt;
@@ -90,7 +92,7 @@ public class CloudWatchReporter extends ElasticBaseRichBolt {
 
         metricName = buildMetricName(conf);
 
-        reporter = new CloudWatchReporterBuilder()
+        reporter = new ContinualCloudWatchBuilder()
                 .withNamespace(this.namespace)
                 .withClient(client)
                 .withRegistry(registry)
