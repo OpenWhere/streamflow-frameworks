@@ -10,6 +10,8 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.elasticm2m.frameworks.common.base.ElasticBaseRichBolt;
@@ -119,7 +121,7 @@ public class S3Writer extends ElasticBaseRichBolt {
                                 bucketName,
                                 createFileKey( DateTime.now(DateTimeZone.UTC) ),
                                 new ByteArrayInputStream(data),
-                                md);
+                                md).withCannedAcl(CannedAccessControlList.BucketOwnerFullControl);
                         s3Service.putObject(request);
                         tupleList.forEach(collector::ack);
                     } else {
