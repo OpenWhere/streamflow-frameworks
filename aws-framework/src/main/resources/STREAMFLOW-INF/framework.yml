@@ -377,6 +377,12 @@ components:
          description: S3 bucket to read records from
          defaultValue:
          required: true
+       - name: s3-role-arn
+         label: Assume Role ARN
+         type: text
+         description: Role to assume to do the read
+         defaultValue:
+         required: false
        - name: stable-seconds
          label: Object Stability Time (seconds)
          type: Integer

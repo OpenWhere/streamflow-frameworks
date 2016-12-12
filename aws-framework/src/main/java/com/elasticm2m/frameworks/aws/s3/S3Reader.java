@@ -7,6 +7,7 @@ import backtype.storm.utils.Utils;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
@@ -47,6 +49,7 @@ public class S3Reader extends ElasticBaseRichSpout {
 
     private AWSCredentialsProvider credentialsProvider;
     private String bucketName;
+    private String roleArn;
     private ScheduledExecutorService executorService;
     private AmazonS3 s3Service;
     private boolean isGzip;
@@ -77,6 +80,11 @@ public class S3Reader extends ElasticBaseRichSpout {
     @Inject(optional = true)
     public void setToDate(@Named("s3-to-date") String toDate) {
         this.toDate = toDate;
+    }
+
+    @Inject(optional = true)
+    public void setRoleArn(@Named("s3-role-arn") String roleArn) {
+        this.roleArn = roleArn;
     }
 
     @Inject
@@ -234,7 +242,20 @@ public class S3Reader extends ElasticBaseRichSpout {
         }
         else
             byteQueue = new LinkedBlockingDeque<>(5000);
-        credentialsProvider = new DefaultAWSCredentialsProviderChain();
+
+
+        if(StringUtils.isNotBlank(this.roleArn)){
+            logger.info("assuming Role with arn " + this.roleArn);
+            STSAssumeRoleSessionCredentialsProvider.Builder stsBuilder =
+                    new STSAssumeRoleSessionCredentialsProvider.Builder(
+                            this.roleArn, "storm");
+            credentialsProvider = stsBuilder.withLongLivedCredentialsProvider(new DefaultAWSCredentialsProviderChain()).build();
+        }
+        else{
+            credentialsProvider = new DefaultAWSCredentialsProviderChain();
+        }
+
+
         s3Service = new AmazonS3Client(credentialsProvider);
         try {
             s3Service.getBucketLocation(bucketName);
