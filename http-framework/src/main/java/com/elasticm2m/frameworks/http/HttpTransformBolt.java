@@ -70,10 +70,16 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
                 values.add(tuple.getValue(2));
                 collector.emit(tuple, values);
             }
-            collector.ack(tuple);
+            else{
+                logger.warn("no content, skipping");
+            }
+
         } catch (Throwable e) {
             logger.error("Unable to process tuple", e);
             collector.fail(tuple);
+        }
+        finally{
+            collector.ack(tuple);
         }
     }
 
