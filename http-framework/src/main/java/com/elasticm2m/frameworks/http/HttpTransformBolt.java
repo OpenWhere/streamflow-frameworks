@@ -10,6 +10,7 @@ import com.google.inject.name.Named;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -18,6 +19,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -54,31 +56,44 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
         }
     }
 
+
     @Override
     public void execute(Tuple tuple) {
         try {
             Object body = tuple.getValue(1);
-            HttpPost httpPost = new HttpPost(endpoint);
-            httpPost.setEntity(toEntity(body));
-            if (StringUtils.isNotBlank(authorizationHeader)) {
-                httpPost.addHeader("Authorization", authorizationHeader);
+
+            String content = getContent(body);
+            if(content != null){
+                List<Object> values = new Values();
+                values.add(tuple.getValue(0));
+                values.add(content);
+                values.add(tuple.getValue(2));
+                collector.emit(tuple, values);
             }
-            CloseableHttpResponse response = httpclient.execute(httpPost);
-
-            HttpEntity responseEntity = response.getEntity();
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            IOUtils.copy(responseEntity.getContent(), out);
-
-            List<Object> values = new Values();
-            values.add(tuple.getValue(0));
-            values.add(new String(out.toByteArray()));
-            values.add(tuple.getValue(2));
-            collector.emit(tuple, values);
             collector.ack(tuple);
         } catch (Throwable e) {
             logger.error("Unable to process tuple", e);
             collector.fail(tuple);
         }
+    }
+
+    public String getContent(Object body) throws IOException {
+
+        HttpPost httpPost = new HttpPost(endpoint);
+        httpPost.setEntity(toEntity(body));
+        if (StringUtils.isNotBlank(authorizationHeader)) {
+            httpPost.addHeader("Authorization", authorizationHeader);
+        }
+        CloseableHttpResponse response = httpclient.execute(httpPost);
+        if(response.getStatusLine().getStatusCode() != HttpStatus.SC_OK){
+            logger.warn("Non-zero status {}, for body {}", response.getStatusLine().getStatusCode(), body.toString());
+            return null;
+        }
+
+        HttpEntity responseEntity = response.getEntity();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtils.copy(responseEntity.getContent(), out);
+        return new String(out.toByteArray());
     }
 
     HttpEntity toEntity(Object body) {
