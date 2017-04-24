@@ -62,7 +62,9 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
         try {
             Object body = tuple.getValue(1);
 
+
             String content = getContent(body);
+            logger.debug("Calling HTTP");
             if(content != null){
                 List<Object> values = new Values();
                 values.add(tuple.getValue(0));
@@ -76,7 +78,8 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
 
         } catch (Throwable e) {
             logger.error("Unable to process tuple", e);
-            collector.fail(tuple);
+            logger.error("Bad Tuple: {}", tuple.getValue(1).toString());
+           // collector.fail(tuple);
         }
         finally{
             collector.ack(tuple);
@@ -93,13 +96,17 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
         CloseableHttpResponse response = httpclient.execute(httpPost);
         if(response.getStatusLine().getStatusCode() != HttpStatus.SC_OK){
             logger.warn("Non-zero status {}, for body {}", response.getStatusLine().getStatusCode(), body.toString());
+            response.close();
             return null;
         }
 
         HttpEntity responseEntity = response.getEntity();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.copy(responseEntity.getContent(), out);
-        return new String(out.toByteArray());
+
+        String output =  new String(out.toByteArray());
+        response.close();
+        return output;
     }
 
     HttpEntity toEntity(Object body) {
