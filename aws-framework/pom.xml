@@ -76,7 +76,7 @@
         <dependency>
             <groupId>com.elasticm2m.streamflow</groupId>
             <artifactId>streamflow-common</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>0.3.1-SNAPSHOT</version>
         </dependency>
 
         <!-- Jackson JSON Parsing -->
