@@ -16,6 +16,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.ByteArrayOutputStream;
@@ -49,7 +51,9 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
     public void prepare(Map conf, TopologyContext topologyContext, OutputCollector collector) {
         try {
             super.prepare(conf, topologyContext, collector);
-            httpclient = HttpClients.createDefault();
+            HttpClientBuilder builder = HttpClients.custom();
+            builder.setRetryHandler(new DefaultHttpRequestRetryHandler(2, false));
+            httpclient = builder.build();
         } catch (Throwable e) {
             logger.error("Unable to prepare service", e);
             throw e;
