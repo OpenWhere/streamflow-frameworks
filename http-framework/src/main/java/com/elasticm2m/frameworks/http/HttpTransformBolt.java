@@ -11,6 +11,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -22,6 +23,8 @@ import org.apache.http.impl.client.HttpClients;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +55,12 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
         try {
             super.prepare(conf, topologyContext, collector);
             HttpClientBuilder builder = HttpClients.custom();
-            builder.setRetryHandler(new DefaultHttpRequestRetryHandler(2, false));
+            int timeout = 3;
+            RequestConfig config = RequestConfig.custom()
+                    .setConnectTimeout(timeout * 1000)
+                    .setConnectionRequestTimeout(timeout * 1000)
+                    .setSocketTimeout(10 * 1000).build();
+            builder.setRetryHandler(new DefaultHttpRequestRetryHandler(2, true)).setDefaultRequestConfig(config);
             httpclient = builder.build();
         } catch (Throwable e) {
             logger.error("Unable to prepare service", e);
@@ -81,9 +89,11 @@ public class HttpTransformBolt extends ElasticBaseRichBolt {
             }
 
         } catch (Throwable e) {
-            logger.error("Unable to process tuple", e);
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            String exceptionAsString = sw.toString();
+            logger.error("Unable to process tuple {}", exceptionAsString);
             logger.error("Bad Tuple: {}", tuple.getValue(1).toString());
-           // collector.fail(tuple);
         }
         finally{
             collector.ack(tuple);
