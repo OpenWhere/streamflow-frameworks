@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.apache.commons.lang3.StringUtils;
@@ -44,15 +43,17 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Created by singram on 9/8/15.
+ *
+ * Base spout reads only JSON files,
+ * either as a JSON array of objects or a newline delimited
+ * list of JSON objects (such as from Kinesis)
+ * Emits JSON objects
  */
 public class S3Reader extends ElasticBaseRichSpout {
-
-    private AWSCredentialsProvider credentialsProvider;
     private String bucketName;
     private String roleArn;
     private ScheduledExecutorService executorService;
     private AmazonS3 s3Service;
-    private boolean isGzip;
     private boolean isJson;
     private boolean isDelimited;
     private boolean isContinuous;
@@ -64,8 +65,11 @@ public class S3Reader extends ElasticBaseRichSpout {
     private ObjectListing metadata;
     private List<S3ObjectSummary> s3Objects;
     private LinkedBlockingDeque<JsonNode> jsonQueue;
-    private LinkedBlockingDeque<byte[]> byteQueue;
     private ObjectMapper objectMapper;
+
+    protected boolean isGzip;
+
+
 
     @Inject
     public void setBucketName(@Named("s3-bucket-name") String bucketName) {
@@ -93,11 +97,6 @@ public class S3Reader extends ElasticBaseRichSpout {
     }
 
     @Inject
-     public void setIsJson(@Named("is-json") boolean isJson) {
-        this.isJson = isJson;
-    }
-
-    @Inject
     public void setIsDelimited(@Named("is-delimited") boolean isDelimited) {
         this.isDelimited = isDelimited;
     }
@@ -110,6 +109,11 @@ public class S3Reader extends ElasticBaseRichSpout {
     @Inject(optional = true)
     public void setIsGzip(@Named("is-gzip") boolean isGzip) {
         this.isGzip = isGzip;
+    }
+
+    @Inject(optional=true)
+    public void setIsJson(@Named("is-json") boolean isJson) {
+        this.isJson = isJson; // no longer used, keeping to not break existing deployments
     }
 
     private boolean isWithinTimeBox(S3ObjectSummary s) {
@@ -164,10 +168,31 @@ public class S3Reader extends ElasticBaseRichSpout {
         }
     }
 
-    private byte[] readData(InputStream is, long len) throws IOException {
-        byte[] data = new byte[ (int)len ];
-        ByteStreams.readFully(is, data);
-        return data;
+    // override these 3 methods in subclass extensions of this reader
+    // Also override nextTuple
+    public boolean roomInQueue() {
+        return jsonQueue.size() <= 100;
+    }
+
+    public void initialize() {
+        jsonQueue = new LinkedBlockingDeque<>(10000);
+        objectMapper = new ObjectMapper();
+    }
+
+    public void processS3Object(S3ObjectSummary summary, S3Object s3Object) {
+        int sz = jsonQueue.size();
+        try (InputStream is = s3Object.getObjectContent()) {
+            JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);
+            if (data.isArray()) {
+                data.forEach(jsonQueue::offer);
+            } else {
+                jsonQueue.offer(data);
+            }
+            logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
+
+        } catch (IOException e) {
+            logger.error("Error in getNextObject()", e);
+        }
     }
 
     private void getNextObject() {
@@ -184,28 +209,11 @@ public class S3Reader extends ElasticBaseRichSpout {
             if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;
             logger.info("From date is now {}", fromDateTime);
             S3Object s3Object = s3Service.getObject(new GetObjectRequest(bucketName, summary.getKey()));
-            int sz = isJson ? jsonQueue.size() : byteQueue.size();
-            try (InputStream is = s3Object.getObjectContent()) {
-                if (isJson) {
-                    JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);
-                    if (data.isArray()) {
-                        data.forEach(jsonQueue::offer);
-                        logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
-                    } else {
-                        jsonQueue.offer(data);
-                        logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
-                    }
-                } else {
-                    byteQueue.offer(readData(isGzip ? new GZIPInputStream(is) : is, s3Object.getObjectMetadata().getContentLength()));
-                    logger.info("Found {} records in {}, new queue size is {}", byteQueue.size() - sz, summary.getKey(), byteQueue.size());
-                }
-            } catch (IOException e) {
-                logger.error("Error in getNextObject()", e);
-            }
+            processS3Object(summary, s3Object);
         }
     }
 
-    protected JsonNode pathFor(JsonNode node, String p[], int idex) {
+    private JsonNode pathFor(JsonNode node, String p[], int idex) {
         if (idex < p.length) {
             return pathFor(node.path(p[idex]), p, ++idex); // recurse
         }
@@ -214,18 +222,14 @@ public class S3Reader extends ElasticBaseRichSpout {
         }
     }
 
-    protected JsonNode pathFor(JsonNode node, String p[]) {
+    private JsonNode pathFor(JsonNode node, String p[]) {
         return pathFor(node, p, 0);
     }
 
     protected Runnable getTask() {
         return () -> {
             try {
-                if (isJson) {
-                    if (jsonQueue.size() <= 100) getNextObject();
-                } else {
-                    if (byteQueue.size() <= 100) getNextObject();
-                }
+                if ( roomInQueue() ) getNextObject();
             } catch (Throwable t) {
                 logger.error("Error in load task", t);
             }
@@ -236,14 +240,9 @@ public class S3Reader extends ElasticBaseRichSpout {
     public void open(Map stormConf, TopologyContext topologyContext, SpoutOutputCollector collector) {
         super.open(stormConf, topologyContext, collector);
 
-        if (isJson) {
-            jsonQueue = new LinkedBlockingDeque<>(10000);
-            objectMapper = new ObjectMapper();
-        }
-        else
-            byteQueue = new LinkedBlockingDeque<>(5000);
+        initialize();
 
-
+        AWSCredentialsProvider credentialsProvider;
         if(StringUtils.isNotBlank(this.roleArn)){
             logger.info("assuming Role with arn " + this.roleArn);
             STSAssumeRoleSessionCredentialsProvider.Builder stsBuilder =
@@ -254,7 +253,6 @@ public class S3Reader extends ElasticBaseRichSpout {
         else{
             credentialsProvider = new DefaultAWSCredentialsProviderChain();
         }
-
 
         s3Service = new AmazonS3Client(credentialsProvider);
         try {
@@ -293,7 +291,7 @@ public class S3Reader extends ElasticBaseRichSpout {
         return null;
     }
 
-    public List<Object> getBinaryTuple(byte[] data) {
+    protected List<Object> makeTuple(Object data) {
         List<Object> values = new Values();
 
         values.add( 1 );
@@ -305,23 +303,14 @@ public class S3Reader extends ElasticBaseRichSpout {
 
     @Override
     public void nextTuple() {
-        if (isJson) {
-            JsonNode node = jsonQueue.poll();
-            if ( null == node ) {
-                Utils.sleep(50);
-            } else {
-                List<Object> tuple = getJsonTuple(node);
-                if (null != tuple ) collector.emit(tuple);
-            }
+        List<Object> tuple = null;
+        JsonNode node = jsonQueue.poll();
+        if (null == node) {
+            Utils.sleep(50);
         } else {
-            byte[] data = byteQueue.poll();
-            if ( null == data ) {
-                Utils.sleep(50);
-            } else {
-                List<Object> tuple = getBinaryTuple(data);
-                if (null != tuple ) collector.emit(tuple);
-            }
+            tuple = getJsonTuple(node);
         }
+        if (null != tuple) collector.emit(tuple);
     }
 
     @Override
