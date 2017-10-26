@@ -423,7 +423,7 @@ components:
    - name: aws-s3-reader
      label: S3 Reader
      type: storm-spout
-     description: Writes data to the specified S3 bucket
+     description: Reads data fromo the specified S3 bucket
      mainClass: com.elasticm2m.frameworks.aws.s3.S3Reader
      icon: icons/aws.png
      properties:
@@ -466,13 +466,125 @@ components:
        - name: is-json
          label: Are Objects JSON?
          type: boolean
-         description: Indicated S3 bucket objects are JSON Strings
-         required: true
+         description: No longer used, files are assumed to be JSON
+         required: false
          defaultValue:
        - name: is-delimited
          label: Are JSON Objects delimited by newlines vs a JSON array?
          type: boolean
          description: Indicated storage pattern in S3 such as from Kinesis Firehose
+         required: true
+         defaultValue:
+       - name: is-gzip
+         label: Are Objects Gzipped?
+         type: boolean
+         description: Indicates S3 objects are gzipped
+         required: true
+         defaultValue:
+     outputs:
+       - key: default
+         description: Generic
+
+  - name: aws-s3-csv-reader
+     label: S3 Reader
+     type: storm-spout
+     description: Reads data from the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3CsvReader
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to read records from
+         defaultValue:
+         required: true
+       - name: s3-role-arn
+         label: Assume Role ARN
+         type: text
+         description: Role to assume to do the read
+         defaultValue:
+         required: false
+       - name: stable-seconds
+         label: Object Stability Time (seconds)
+         type: Integer
+         description: Last modifed must be at least this old
+         required: true
+         defaultValue: 60
+       - name: s3-from-date
+         label: From Date (inclusive)
+         type: text
+         description: Start date to look for in S3 objects
+         required: true
+         defaultValue:
+       - name: s3-to-date
+         label: To Date (exclusive)
+         type: text
+         description: End date to look for in S3 objects
+         required: false
+         defaultValue:
+       - name: is-continuous
+         label: Ignore toDate?
+         type: boolean
+         description: Signals to ignore toDate and continue processing new records
+         required: true
+         defaultValue:
+       - name: is-first-line-excluded
+         label: Ignore first line (header values)
+         type: boolean
+         description: Signals that the CSV file has a header line to be ignored
+         required: false
+         defaultValue:
+       - name: is-gzip
+         label: Are Objects Gzipped?
+         type: boolean
+         description: Indicates S3 objects are gzipped
+         required: true
+         defaultValue:
+     outputs:
+       - key: default
+         description: Generic
+
+  - name: aws-s3-binary-reader
+     label: S3 Reader
+     type: storm-spout
+     description: Reads data from the specified S3 bucket
+     mainClass: com.elasticm2m.frameworks.aws.s3.S3BinaryReader
+     icon: icons/aws.png
+     properties:
+       - name: s3-bucket-name
+         label: Bucket Name
+         type: text
+         description: S3 bucket to read records from
+         defaultValue:
+         required: true
+       - name: s3-role-arn
+         label: Assume Role ARN
+         type: text
+         description: Role to assume to do the read
+         defaultValue:
+         required: false
+       - name: stable-seconds
+         label: Object Stability Time (seconds)
+         type: Integer
+         description: Last modifed must be at least this old
+         required: true
+         defaultValue: 60
+       - name: s3-from-date
+         label: From Date (inclusive)
+         type: text
+         description: Start date to look for in S3 objects
+         required: true
+         defaultValue:
+       - name: s3-to-date
+         label: To Date (exclusive)
+         type: text
+         description: End date to look for in S3 objects
+         required: false
+         defaultValue:
+       - name: is-continuous
+         label: Ignore toDate?
+         type: boolean
+         description: Signals to ignore toDate and continue processing new records
          required: true
          defaultValue:
        - name: is-gzip
