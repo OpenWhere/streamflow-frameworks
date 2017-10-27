@@ -4,27 +4,14 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.elasticm2m.frameworks.common.base.ElasticBaseRichSpout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,14 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
-
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
 
 /**
  * Created by singram on 9/8/15.
@@ -49,136 +30,42 @@ import static java.util.stream.Collectors.toList;
  * list of JSON objects (such as from Kinesis)
  * Emits JSON objects
  */
-public class S3Reader extends ElasticBaseRichSpout {
-    private String bucketName;
-    private String roleArn;
-    private ScheduledExecutorService executorService;
-    private AmazonS3 s3Service;
+public class S3Reader extends S3BaseSpout {
     private boolean isJson;
     private boolean isDelimited;
-    private boolean isContinuous;
-    private String fromDate;
-    private String toDate;
-    private Integer stableSeconds;
-    private DateTime fromDateTime, toDateTime;
-    private int objectIndex;
-    private ObjectListing metadata;
-    private List<S3ObjectSummary> s3Objects;
     private LinkedBlockingDeque<JsonNode> jsonQueue;
     private ObjectMapper objectMapper;
-
-    protected boolean isGzip;
-
-
-
-    @Inject
-    public void setBucketName(@Named("s3-bucket-name") String bucketName) {
-        this.bucketName = bucketName;
-    }
-
-    @Inject
-    public void setFromDate(@Named("s3-from-date") String fromDate) {
-        this.fromDate = fromDate;
-    }
-
-    @Inject(optional = true)
-    public void setToDate(@Named("s3-to-date") String toDate) {
-        this.toDate = toDate;
-    }
-
-    @Inject(optional = true)
-    public void setRoleArn(@Named("s3-role-arn") String roleArn) {
-        this.roleArn = roleArn;
-    }
-
-    @Inject
-    public void setIsContinuous(@Named("is-continuous") boolean isContinuous) {
-        this.isContinuous = isContinuous;
-    }
 
     @Inject
     public void setIsDelimited(@Named("is-delimited") boolean isDelimited) {
         this.isDelimited = isDelimited;
     }
 
-    @Inject
-    public void setStableSeconds(@Named("stable-seconds") Integer stableSeconds) {
-        this.stableSeconds = stableSeconds;
-    }
-
     @Inject(optional = true)
-    public void setIsGzip(@Named("is-gzip") boolean isGzip) {
-        this.isGzip = isGzip;
-    }
-
-    @Inject(optional=true)
     public void setIsJson(@Named("is-json") boolean isJson) {
         this.isJson = isJson; // no longer used, keeping to not break existing deployments
     }
 
-    private boolean isWithinTimeBox(S3ObjectSummary s) {
-        DateTime date = new DateTime( s.getLastModified().getTime() );
-        if ( !isContinuous && null != toDateTime ) {
-            return !date.isBefore(fromDateTime) && date.isBefore(toDateTime);
-        } else {
-            return date.isAfter(fromDateTime);
-        }
-    }
-
-    private List<S3ObjectSummary> filterListing(ObjectListing ol) {
-         return ol.getObjectSummaries().stream()
-                .filter(this::isWithinTimeBox)
-                .sorted(comparing(S3ObjectSummary::getLastModified))
-                .collect(toList());
-    }
-
-    private void getNextListing() {
-        try {
-            if (null != metadata && metadata.isTruncated()) {
-                metadata = s3Service.listNextBatchOfObjects(metadata);
-                s3Objects = filterListing(metadata);
-                objectIndex = 0;
-            } else {
-                // start over
-                metadata = s3Service.listObjects(bucketName);
-                s3Objects = filterListing(metadata);
-                if (s3Objects.size() > 0){
-                    logger.info("Starting Bucket scan and new objects found");
-                }
-                objectIndex = 0;
-            }
-        } catch (Throwable t) {
-            metadata = null;
-            logger.error("Error in getNextListing", t);
-        }
-    }
-
     private JsonNode readJsonData(InputStream is) throws IOException {
-        if(isDelimited){
+        if (isDelimited) {
             Scanner scanner = new Scanner(is).useDelimiter("\\n");
             ArrayNode listNode = objectMapper.createArrayNode();
-            while (scanner.hasNext()){
+            while (scanner.hasNext()) {
                 JsonNode node = objectMapper.readValue(scanner.next(), JsonNode.class);
                 listNode.add(node);
             }
             return listNode;
-        }
-        else{
+        } else {
             return objectMapper.readValue(is, JsonNode.class);
         }
     }
 
-    // override these 3 methods in subclass extensions of this reader
-    // Also override nextTuple
+    @Override
     public boolean roomInQueue() {
         return jsonQueue.size() <= 100;
     }
 
-    public void initialize() {
-        jsonQueue = new LinkedBlockingDeque<>(10000);
-        objectMapper = new ObjectMapper();
-    }
-
+    @Override
     public void processS3Object(S3ObjectSummary summary, S3Object s3Object) {
         int sz = jsonQueue.size();
         try (InputStream is = s3Object.getObjectContent()) {
@@ -191,33 +78,14 @@ public class S3Reader extends ElasticBaseRichSpout {
             logger.info("Found {} records in {}, new queue size is {}", jsonQueue.size() - sz, summary.getKey(), jsonQueue.size());
 
         } catch (IOException e) {
-            logger.error("Error in getNextObject()", e);
-        }
-    }
-
-    private void getNextObject() {
-        if ( objectIndex >= s3Objects.size() ) getNextListing();
-
-        if (objectIndex < s3Objects.size() ) {
-            S3ObjectSummary summary = s3Objects.get(objectIndex++);
-            if ( DateTime.now().minusSeconds(stableSeconds).isBefore( new DateTime(summary.getLastModified().getTime()) ) ) {
-                logger.info("Waiting {} seconds for S3 Object to stabilize", stableSeconds);
-                Utils.sleep(stableSeconds * 1000);
-            }
-            logger.info("Processing S3 object {}", summary.getKey());
-            DateTime lastModified = new DateTime(summary.getLastModified().getTime(), DateTimeZone.UTC);
-            if (lastModified.isAfter(fromDateTime)) fromDateTime = lastModified;
-            logger.info("From date is now {}", fromDateTime);
-            S3Object s3Object = s3Service.getObject(new GetObjectRequest(bucketName, summary.getKey()));
-            processS3Object(summary, s3Object);
+            logger.error("Error in S3Reader.processS3Object()", e);
         }
     }
 
     private JsonNode pathFor(JsonNode node, String p[], int idex) {
         if (idex < p.length) {
             return pathFor(node.path(p[idex]), p, ++idex); // recurse
-        }
-        else {
+        } else {
             return node;
         }
     }
@@ -226,63 +94,26 @@ public class S3Reader extends ElasticBaseRichSpout {
         return pathFor(node, p, 0);
     }
 
-    protected Runnable getTask() {
-        return () -> {
-            try {
-                if ( roomInQueue() ) getNextObject();
-            } catch (Throwable t) {
-                logger.error("Error in load task", t);
-            }
-        };
-    }
-
     @Override
     public void open(Map stormConf, TopologyContext topologyContext, SpoutOutputCollector collector) {
         super.open(stormConf, topologyContext, collector);
 
-        initialize();
+        jsonQueue = new LinkedBlockingDeque<>(10000);
+        objectMapper = new ObjectMapper();
 
-        AWSCredentialsProvider credentialsProvider;
-        if(StringUtils.isNotBlank(this.roleArn)){
-            logger.info("assuming Role with arn " + this.roleArn);
-            STSAssumeRoleSessionCredentialsProvider.Builder stsBuilder =
-                    new STSAssumeRoleSessionCredentialsProvider.Builder(
-                            this.roleArn, "storm");
-            credentialsProvider = stsBuilder.withLongLivedCredentialsProvider(new DefaultAWSCredentialsProviderChain()).build();
-        }
-        else{
-            credentialsProvider = new DefaultAWSCredentialsProviderChain();
-        }
-
-        s3Service = new AmazonS3Client(credentialsProvider);
-        try {
-            s3Service.getBucketLocation(bucketName);
-        } catch (AmazonClientException e) {
-            logger.error("Bucket [" + bucketName + " does not exist");
-            throw new IllegalStateException("Bucket [" + bucketName + " does not exist");
-        }
-        if (!isContinuous)
-            logger.info("Opening S3 Reader from bucket [{}], from date={} and toDate={}", bucketName, fromDate, toDate);
-        else
-            logger.info("Opening S3 Reader from bucket [{}], from date={}", bucketName, fromDate);
-        fromDateTime = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(fromDate);
-        if (!isContinuous) toDateTime = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(toDate);
-        getNextListing();
-        getNextObject();
-        executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate( getTask(), 0, 100, TimeUnit.MILLISECONDS );
+        s3start();
     }
 
     public List<Object> getJsonTuple(JsonNode node) {
         List<Object> values = new Values();
 
-        String id = pathFor(node, new String[] { "id" }).asText();
-        if ( null == id ) id = pathFor(node, new String[] {"properties", "id"}).asText();
+        String id = pathFor(node, new String[]{"id"}).asText();
+        if (null == id) id = pathFor(node, new String[]{"properties", "id"}).asText();
         try {
             String jsonString = objectMapper.writeValueAsString(node);
-            values.add( id );
-            values.add( jsonString );
-            values.add( new HashMap<>() );
+            values.add(id);
+            values.add(jsonString);
+            values.add(new HashMap<>());
 
             return values;
         } catch (JsonProcessingException e) {
@@ -291,18 +122,8 @@ public class S3Reader extends ElasticBaseRichSpout {
         return null;
     }
 
-    protected List<Object> makeTuple(Object data) {
-        List<Object> values = new Values();
-
-        values.add( 1 );
-        values.add( data );
-        values.add( new HashMap<>() );
-
-        return values;
-    }
-
     @Override
-    public void nextTuple() {
+    public List<Object> getNextTuple() {
         List<Object> tuple = null;
         JsonNode node = jsonQueue.poll();
         if (null == node) {
@@ -310,19 +131,12 @@ public class S3Reader extends ElasticBaseRichSpout {
         } else {
             tuple = getJsonTuple(node);
         }
-        if (null != tuple) collector.emit(tuple);
+        return tuple;
     }
 
     @Override
     public void close() {
         super.close();
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(2, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-
-        } finally {
-            if ( !executorService.isTerminated() ) executorService.shutdownNow();
-        }
+        s3Stop();
     }
 }

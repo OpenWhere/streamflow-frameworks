@@ -1,5 +1,7 @@
 package com.elasticm2m.frameworks.aws.s3;
 
+import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.utils.Utils;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -8,6 +10,7 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.zip.GZIPInputStream;
 
@@ -15,7 +18,7 @@ import java.util.zip.GZIPInputStream;
  * Created by singram on 10/26/17
  * Extends S3Reader to handle binary files
  */
-public class S3BinaryReader extends S3Reader {
+public class S3BinaryReader extends S3BaseSpout {
     private LinkedBlockingDeque<byte[]> byteQueue;
 
     private byte[] readData(InputStream is, long len) throws IOException {
@@ -36,7 +39,12 @@ public class S3BinaryReader extends S3Reader {
     }
 
     @Override
-    public void nextTuple() {
+    public boolean roomInQueue() {
+        return byteQueue.size() <= 100;
+    }
+
+    @Override
+    public List<Object> getNextTuple() {
         List<Object> tuple = null;
         byte[] data = byteQueue.poll();
         if ( null == data ) {
@@ -44,17 +52,20 @@ public class S3BinaryReader extends S3Reader {
         } else {
             tuple = makeTuple(data);
         }
-        if (null != tuple) collector.emit(tuple);
+        return tuple;
     }
 
     @Override
-    public boolean roomInQueue() {
-        return byteQueue.size() <= 100;
-    }
-
-    @Override
-    public void initialize() {
+    public void open(Map stormConf, TopologyContext topologyContext, SpoutOutputCollector collector) {
+        super.open(stormConf, topologyContext, collector);
         byteQueue = new LinkedBlockingDeque<>(5000);
+        s3start();
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        s3Stop();
     }
 }
 
