@@ -97,7 +97,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.10.45</version>
+            <version>${amazon.version}</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
