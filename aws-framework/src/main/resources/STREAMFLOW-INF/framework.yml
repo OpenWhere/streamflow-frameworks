@@ -486,7 +486,7 @@ components:
          description: Generic
 
    - name: aws-s3-csv-reader
-     label: S3 Reader
+     label: S3 CSV Reader
      type: storm-spout
      description: Reads data from the specified S3 bucket
      mainClass: com.elasticm2m.frameworks.aws.s3.S3CsvReader
@@ -545,7 +545,7 @@ components:
          description: Generic
 
    - name: aws-s3-binary-reader
-     label: S3 Reader
+     label: S3 Binary Reader
      type: storm-spout
      description: Reads data from the specified S3 bucket
      mainClass: com.elasticm2m.frameworks.aws.s3.S3BinaryReader
