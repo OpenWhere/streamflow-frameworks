@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.scaleset.geo.geojson.GeoJsonModule;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -26,6 +27,8 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
 
@@ -104,23 +107,24 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         try {
-            Object payload = tuple.getValue(1);
-            if (payload != null) {
-                String json = payload.toString();
-                JsonNode root = objectMapper.readTree(json);
-                DateTime start = getDateTime(root, startProperty);
-                DateTime end = endProperty != null ? getDateTime(root, endProperty) : new DateTime(DateTimeZone.UTC);
-                long millis = end.getMillis() - start.getMillis();
-                registry.histogram(metricName).update(millis);
+            try {
+                Object payload = tuple.getValue(1);
+                if (payload != null) {
+                    String json = payload.toString();
+                    JsonNode root = objectMapper.readTree(json);
+                    DateTime start = getDateTime(root, startProperty);
+                    DateTime end = isNotBlank(endProperty) ? getDateTime(root, endProperty) : new DateTime(DateTimeZone.UTC);
+                    long millis = end.getMillis() - start.getMillis();
+                    registry.histogram(metricName).update(millis);
+                }
+            } catch (Throwable t) {
+                logger.error("error computing timing delta, {}", t.getMessage(), t);
             }
-
             collector.emit(tuple, tuple.getValues());
-
-        } catch (Throwable t) {
-            logger.error("error computing timing delta {}", t.getMessage(), t);
         } finally {
             collector.ack(tuple);
         }
+
     }
 
     private DateTime getDateTime(JsonNode root, String jsonNodeRef) {
