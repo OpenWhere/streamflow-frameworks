@@ -136,9 +136,8 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
     CloudWatchReporter getCloudwatchReporter() {
 
         AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
-        AmazonCloudWatchAsyncClient client1 = new AmazonCloudWatchAsyncClient(credentialsProvider);
-        client1.setRegion(Region.getRegion(Regions.fromName(regionName)));
-        AmazonCloudWatchAsyncClient client = client1;
+        AmazonCloudWatchAsyncClient client = new AmazonCloudWatchAsyncClient(credentialsProvider);
+        client.setRegion(Region.getRegion(Regions.fromName(regionName)));
 
         return new ContinualCloudWatchBuilder()
                 .withNamespace(this.namespace)
