@@ -104,8 +104,6 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         try {
-            collector.emit(tuple, tuple.getValues());
-
             Object payload = tuple.getValue(1);
             if (payload != null) {
                 String json = payload.toString();
@@ -115,6 +113,8 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
                 long millis = end.getMillis() - start.getMillis();
                 registry.histogram(metricName).update(millis);
             }
+
+            collector.emit(tuple, tuple.getValues());
 
         } catch (Throwable t) {
             logger.error("error computing timing delta {}", t.getMessage(), t);
