@@ -97,7 +97,22 @@ public class CloudWatchFieldTimeDeltaReporterTest {
         bolt.setEndProperty("/properties/meta/ingest_time");
         bolt.execute(tuple);
 
-        verify(histogram).update(60000L);
+        verify(histogram).update(60L);
+        verify(collector).emit(eq(tuple), any());
+        verify(collector).ack(tuple);
+    }
+
+    @Test
+    public void testValidJsonStartAndEndInMinutes() {
+
+        when(tuple.getValue(1)).thenReturn(SAMPLE_JSON);
+
+        bolt.setStartProperty("/properties/timestamp");
+        bolt.setEndProperty("/properties/meta/ingest_time");
+        bolt.setMetricTimeUnit("MINUTES");
+        bolt.execute(tuple);
+
+        verify(histogram).update(1L);
         verify(collector).emit(eq(tuple), any());
         verify(collector).ack(tuple);
     }
