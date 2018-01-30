@@ -225,6 +225,19 @@ components:
          type: Integer
          required: true
          defaultValue: 1
+       - name: cloudwatch-metric-time-unit
+         label: Metric Time Unit
+         type: select
+         description: Time unit for delta metric.
+         defaultValue: SECONDS
+         required: false
+         options:
+            listItems:
+              - MILLISECONDS
+              - SECONDS
+              - MINUTES
+              - HOURS
+              - DAYS
      inputs:
        - key: default
          description: Generic

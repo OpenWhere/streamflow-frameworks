@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.scaleset.geo.geojson.GeoJsonModule;
-import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -43,11 +42,17 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
     private String startProperty;
     private DateTimeFormatter dateTimeFormatter;
     private String endProperty;
+    private TimeUnit metricTimeUnit = TimeUnit.SECONDS;
 
 
     @Inject(optional = true)
     public void setName(@Named("cloudwatch-name") String name) {
         this.name = name;
+    }
+
+    @Inject(optional = true)
+    public void setMetricTimeUnit(@Named("cloudwatch-metric-time-unit") String metricTimeUnit) {
+        this.metricTimeUnit = TimeUnit.valueOf(metricTimeUnit);
     }
 
     @Inject(optional = true)
@@ -115,7 +120,9 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
                     DateTime start = getDateTime(root, startProperty);
                     DateTime end = isNotBlank(endProperty) ? getDateTime(root, endProperty) : new DateTime(DateTimeZone.UTC);
                     long millis = end.getMillis() - start.getMillis();
-                    registry.histogram(metricName).update(millis);
+                    long convertedTime = metricTimeUnit.convert(millis, TimeUnit.MILLISECONDS);
+
+                    registry.histogram(metricName).update(convertedTime);
                 }
             } catch (Throwable t) {
                 logger.error("error computing timing delta, {}", t.getMessage(), t);
