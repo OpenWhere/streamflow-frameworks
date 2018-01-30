@@ -174,7 +174,7 @@ components:
      label: AWS Cloudwatch Field Time Delta Reporter
      type: storm-bolt
      description: Reports delta between dates stored in Json payload  to cloudwatch
-     mainClass: com.elasticm2m.frameworks.aws.cloudwatch.CloudWatchReporter
+     mainClass: com.elasticm2m.frameworks.aws.cloudwatch.CloudWatchFieldTimeDeltaReporter
      icon: icons/cloudwatch.png
      properties:
        - name: cloudwatch-name
