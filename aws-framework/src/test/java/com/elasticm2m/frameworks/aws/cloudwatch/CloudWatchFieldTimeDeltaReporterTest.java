@@ -1,9 +1,9 @@
 package com.elasticm2m.frameworks.aws.cloudwatch;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Tuple;
 import com.blacklocus.metrics.CloudWatchReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;

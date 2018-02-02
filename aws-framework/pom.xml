@@ -107,7 +107,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>amazon-kinesis-client</artifactId>
-            <version>1.4.0</version>
+            <version>${amazon-kinesis-client.version}</version>
         </dependency>
 
         <dependency>

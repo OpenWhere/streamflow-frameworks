@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <prerequisites>
@@ -10,26 +11,27 @@
     <artifactId>parent</artifactId>
     <version>0.3.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-	
+
     <name>streamflow-frameworks-parent</name>
     <url>https://github.com/elasticm2m/streamflow-frameworks</url>
 
-    <properties> 
-        <!-- Core Properties -->       
+    <properties>
+        <!-- Core Properties -->
         <jdk.version>1.8</jdk.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        
+
         <!-- Dependency Versions -->
-        <storm.version>0.9.4</storm.version>
-        <jackson.version>2.4.1</jackson.version>
+        <storm.version>1.1.1</storm.version>
+        <jackson.version>2.9.4</jackson.version>
         <guice.version>3.0</guice.version>
         <metrics.version>3.0.2</metrics.version>
-        <slf4j.version>1.7.7</slf4j.version>
+        <slf4j.version>1.7.25</slf4j.version>
         <junit.version>4.11</junit.version>
-        <amazon.version>1.10.77</amazon.version>
+        <amazon.version>1.11.271</amazon.version>
+        <amazon-kinesis-client.version>1.8.10</amazon-kinesis-client.version>
     </properties>
 
     <modules>
@@ -74,19 +76,11 @@
 
             <!-- Jackson JSON Parsing -->
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
                 <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
 
             <!-- Google Guice Dependency Injection -->
@@ -102,7 +96,7 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
-            
+
             <!-- JUnit Testing -->
             <dependency>
                 <groupId>junit</groupId>
@@ -124,34 +118,35 @@
     </dependencyManagement>
 
     <dependencies>
+
         <!-- Storm Core Library (Provided) -->
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
             <scope>provided</scope>
         </dependency>
-		
+
         <!-- Google Guice Dependency Injection (Provided) -->
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
             <scope>provided</scope>
         </dependency>
-        
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        
+
         <!-- Unit Testing -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-            
+
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
@@ -176,7 +171,7 @@
                     <allowSnapshots>false</allowSnapshots>
                 </configuration>
             </plugin>
-            
+
             <!-- Unit Test Executor -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

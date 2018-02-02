@@ -1,13 +1,13 @@
 package com.elasticm2m.frameworks.twitter;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.utils.Utils;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.utils.Utils;
 import com.elasticm2m.frameworks.common.base.ElasticBaseRichSpout;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.apache.commons.lang.StringUtils;
+import org.apache.storm.shade.org.apache.commons.lang.StringUtils;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
