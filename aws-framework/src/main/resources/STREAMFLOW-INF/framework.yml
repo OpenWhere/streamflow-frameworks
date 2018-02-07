@@ -209,13 +209,13 @@ components:
               - sa-east-1
               - cn-north-1
        - name: start-property
-         label: Start property path
+         label: Start property path, eg. /properties/timestamp
          type: text
          description: Json node path for starting datetime property
          defaultValue:
          required: true
        - name: end-property
-         label: End property path
+         label: End property path, eg. /properties/meta/ingest_time
          type: text
          description: Json node path for ending datetime property, defaults to current instant (now)
          defaultValue:
