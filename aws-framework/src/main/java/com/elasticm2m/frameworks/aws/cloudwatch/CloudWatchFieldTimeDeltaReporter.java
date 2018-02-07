@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
@@ -24,6 +25,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -127,7 +129,12 @@ public class CloudWatchFieldTimeDeltaReporter extends ElasticBaseRichBolt {
             } catch (Throwable t) {
                 logger.error("error computing timing delta, {}", t.getMessage(), t);
             }
-            collector.emit(tuple, tuple.getValues());
+
+            List<Object> values = new Values();
+            values.add(tuple.getValue(0));
+            values.add(tuple.getValue(1));
+            values.add(tuple.getValue(2));
+            collector.emit(tuple, values);
         } finally {
             collector.ack(tuple);
         }
