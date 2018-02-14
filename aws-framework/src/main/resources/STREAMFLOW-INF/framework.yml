@@ -170,6 +170,81 @@ components:
        - key: default
          description: Generic
 
+   - name: aws-cloudwatch-field-time-delta-bolt
+     label: AWS Cloudwatch Field Time Delta Reporter
+     type: storm-bolt
+     description: Reports delta between dates stored in Json payload  to cloudwatch
+     mainClass: com.elasticm2m.frameworks.aws.cloudwatch.CloudWatchFieldTimeDeltaReporter
+     icon: icons/cloudwatch.png
+     properties:
+       - name: cloudwatch-name
+         label: Name of metric
+         type: text
+         description: Name to report this metric as
+         defaultValue:
+         required: true
+       - name: cloudwatch-namespace
+         label: Namespace of metric
+         type: text
+         description: Cloudwatch Namespace where this metric falls
+         defaultValue:
+         required: true
+       - name: cloudwatch-region-name
+         label: Region Name
+         type: select
+         description: Kinesis Region to process records from
+         defaultValue: us-east-1
+         required: false
+         options:
+            listItems:
+              - us-gov-west-1
+              - us-east-1
+              - us-west-1
+              - us-west-2
+              - eu-west-1
+              - eu-central-1
+              - ap-southeast-1
+              - ap-southeast-2
+              - ap-northeast-1
+              - sa-east-1
+              - cn-north-1
+       - name: start-property
+         label: Start property path, eg. /properties/timestamp
+         type: text
+         description: Json node path for starting datetime property
+         defaultValue:
+         required: true
+       - name: end-property
+         label: End property path, eg. /properties/meta/ingest_time
+         type: text
+         description: Json node path for ending datetime property, defaults to current instant (now)
+         defaultValue:
+         required: false
+       - name: report-frequency
+         label: Minute frequency to report to Cloudwatch
+         type: Integer
+         required: true
+         defaultValue: 1
+       - name: cloudwatch-metric-time-unit
+         label: Metric Time Unit
+         type: select
+         description: Time unit for delta metric.
+         defaultValue: SECONDS
+         required: false
+         options:
+            listItems:
+              - MILLISECONDS
+              - SECONDS
+              - MINUTES
+              - HOURS
+              - DAYS
+     inputs:
+       - key: default
+         description: Generic
+     outputs:
+       - key: default
+         description: Generic
+
    - name: aws-cloudwatch-text-bolt
      label: Cloudwatch Text Size Reporter
      type: storm-bolt
