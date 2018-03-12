@@ -32,19 +32,16 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>18.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
-            <version>1.0.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.scaleset</groupId>
             <artifactId>scaleset-geo</artifactId>
-            <version>0.16.0</version>
         </dependency>
 
     </dependencies>

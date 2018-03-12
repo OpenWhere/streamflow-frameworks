@@ -1,6 +1,6 @@
 package com.elasticm2m.frameworks.http;
 
-import backtype.storm.utils.Utils;
+import org.apache.storm.utils.Utils;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
 import org.junit.Ignore;

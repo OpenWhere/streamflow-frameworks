@@ -1,7 +1,7 @@
 package com.elasticm2m.frameworks.aws.s3;
 
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
