@@ -84,3 +84,28 @@ components:
     inputs: 
       - key: default
         description: Generic
+
+  - name: random-delay
+    label: Random Delay
+    type: storm-bolt
+    description: Sleeps for a random delay between min, max sleep millis before emitting tuple
+    mainClass: com.elasticm2m.frameworks.core.RandomDelay
+    properties:
+      - name: min-sleep-millis
+        label: Min Sleep (ms)
+        type: integer
+        description: Minimum delay between tuples in milliseconds
+        defaultValue: 100
+        required: true
+      - name: max-sleep-millis
+        label: Max Sleep (ms)
+        type: integer
+        description: Maximum delay between tuples in milliseconds
+        defaultValue: 500
+        required: true
+    inputs:
+      - key: default
+        description: Generic
+    outputs:
+       - key: default
+         description: Generic
