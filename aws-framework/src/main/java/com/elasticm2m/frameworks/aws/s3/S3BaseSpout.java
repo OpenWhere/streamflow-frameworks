@@ -1,7 +1,5 @@
 package com.elasticm2m.frameworks.aws.s3;
 
-import org.apache.storm.tuple.Values;
-import org.apache.storm.utils.Utils;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -16,6 +14,8 @@ import com.elasticm2m.frameworks.common.base.ElasticBaseRichSpout;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
@@ -39,6 +39,7 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
     private ScheduledExecutorService executorService;
     private AmazonS3 s3Service;
     private boolean isContinuous;
+    private int lookbackMinutes = 15;
     private String fromDate;
     private String toDate;
     private Integer stableSeconds;
@@ -54,9 +55,16 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
         this.bucketName = bucketName;
     }
 
-    @Inject
+    @Inject(optional = true)
     public void setFromDate(@Named("s3-from-date") String fromDate) {
         this.fromDate = fromDate;
+    }
+
+    @Inject(optional = true)
+    public void setLookbackMinutes(@Named("lookback-minutes") Integer lookbackMinutes) {
+        if (lookbackMinutes != null) {
+            this.lookbackMinutes = lookbackMinutes;
+        }
     }
 
     @Inject(optional = true)
@@ -85,8 +93,8 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
     }
 
     private boolean isWithinTimeBox(S3ObjectSummary s) {
-        DateTime date = new DateTime( s.getLastModified().getTime() );
-        if ( !isContinuous && null != toDateTime ) {
+        DateTime date = new DateTime(s.getLastModified().getTime());
+        if (!isContinuous && null != toDateTime) {
             return !date.isBefore(fromDateTime) && date.isBefore(toDateTime);
         } else {
             return date.isAfter(fromDateTime);
@@ -110,7 +118,7 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
                 // start over
                 metadata = s3Service.listObjects(bucketName);
                 s3Objects = filterListing(metadata);
-                if (s3Objects.size() > 0){
+                if (s3Objects.size() > 0) {
                     logger.info("Starting Bucket scan and new objects found");
                 }
                 objectIndex = 0;
@@ -122,15 +130,17 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
     }
 
     public abstract boolean roomInQueue();
+
     public abstract List<Object> getNextTuple();
+
     public abstract void processS3Object(S3ObjectSummary summary, S3Object s3Object);
 
     private void getNextObject() {
-        if ( objectIndex >= s3Objects.size() ) getNextListing();
+        if (objectIndex >= s3Objects.size()) getNextListing();
 
-        if (objectIndex < s3Objects.size() ) {
+        if (objectIndex < s3Objects.size()) {
             S3ObjectSummary summary = s3Objects.get(objectIndex++);
-            if ( DateTime.now().minusSeconds(stableSeconds).isBefore( new DateTime(summary.getLastModified().getTime()) ) ) {
+            if (DateTime.now().minusSeconds(stableSeconds).isBefore(new DateTime(summary.getLastModified().getTime()))) {
                 logger.info("Waiting {} seconds for S3 Object to stabilize", stableSeconds);
                 Utils.sleep(stableSeconds * 1000);
             }
@@ -146,7 +156,7 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
     protected Runnable getTask() {
         return () -> {
             try {
-                if ( roomInQueue() ) getNextObject();
+                if (roomInQueue()) getNextObject();
             } catch (Throwable t) {
                 logger.error("Error in load task", t);
             }
@@ -171,14 +181,13 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
 
     public void s3start() {
         AWSCredentialsProvider credentialsProvider;
-        if(StringUtils.isNotBlank(this.roleArn)){
+        if (StringUtils.isNotBlank(this.roleArn)) {
             logger.info("assuming Role with arn " + this.roleArn);
             STSAssumeRoleSessionCredentialsProvider.Builder stsBuilder =
                     new STSAssumeRoleSessionCredentialsProvider.Builder(
                             this.roleArn, "storm");
             credentialsProvider = stsBuilder.withLongLivedCredentialsProvider(new DefaultAWSCredentialsProviderChain()).build();
-        }
-        else{
+        } else {
             credentialsProvider = new DefaultAWSCredentialsProviderChain();
         }
 
@@ -189,16 +198,19 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
             logger.error("Bucket [" + bucketName + " does not exist");
             throw new IllegalStateException("Bucket [" + bucketName + " does not exist");
         }
-        if (!isContinuous)
-            logger.info("Opening S3 Reader from bucket [{}], from date={} and toDate={}", bucketName, fromDate, toDate);
-        else
-            logger.info("Opening S3 Reader from bucket [{}], from date={}", bucketName, fromDate);
-        fromDateTime = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(fromDate);
-        if (!isContinuous) toDateTime = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(toDate);
+        logger.info("Opening S3 Reader from bucket [{}], lookback mins: {} fromDate: {}, toDate: {}, continuous: {}",
+                lookbackMinutes, bucketName, fromDate, toDate, isContinuous);
+
+        fromDateTime = StringUtils.isBlank(fromDate)
+                ? DateTime.now().minusMinutes(lookbackMinutes)
+                : ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(fromDate);
+
+        toDateTime = isContinuous ? null : ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(toDate);
+
         getNextListing();
         getNextObject();
         executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate( getTask(), 0, 100, TimeUnit.MILLISECONDS );
+        executorService.scheduleAtFixedRate(getTask(), 0, 100, TimeUnit.MILLISECONDS);
     }
 
 
@@ -209,7 +221,7 @@ public abstract class S3BaseSpout extends ElasticBaseRichSpout {
         } catch (InterruptedException e) {
 
         } finally {
-            if ( !executorService.isTerminated() ) executorService.shutdownNow();
+            if (!executorService.isTerminated()) executorService.shutdownNow();
         }
     }
 }

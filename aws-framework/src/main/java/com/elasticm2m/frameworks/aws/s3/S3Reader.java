@@ -67,6 +67,7 @@ public class S3Reader extends S3BaseSpout {
 
     @Override
     public void processS3Object(S3ObjectSummary summary, S3Object s3Object) {
+
         int sz = jsonQueue.size();
         try (InputStream is = s3Object.getObjectContent()) {
             JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);
