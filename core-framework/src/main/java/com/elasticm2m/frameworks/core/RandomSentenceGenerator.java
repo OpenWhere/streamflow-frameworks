@@ -1,6 +1,6 @@
 package com.elasticm2m.frameworks.core;
 
-import backtype.storm.utils.Utils;
+import org.apache.storm.utils.Utils;
 import com.elasticm2m.frameworks.common.base.ElasticBaseRichSpout;
 import com.elasticm2m.frameworks.common.protocol.TupleAdapter;
 import com.elasticm2m.frameworks.common.protocol.TupleSerializationException;

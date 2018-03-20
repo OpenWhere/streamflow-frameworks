@@ -1,7 +1,7 @@
 package com.elasticm2m.frameworks.mock;
 
-import backtype.storm.Constants;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.Constants;
+import org.apache.storm.tuple.Tuple;
 import com.elasticm2m.frameworks.common.protocol.TupleAdapter;
 import com.elasticm2m.frameworks.common.protocol.TupleSerializationException;
 import java.util.HashMap;

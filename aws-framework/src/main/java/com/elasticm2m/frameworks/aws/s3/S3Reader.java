@@ -1,9 +1,9 @@
 package com.elasticm2m.frameworks.aws.s3;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,6 +67,7 @@ public class S3Reader extends S3BaseSpout {
 
     @Override
     public void processS3Object(S3ObjectSummary summary, S3Object s3Object) {
+
         int sz = jsonQueue.size();
         try (InputStream is = s3Object.getObjectContent()) {
             JsonNode data = readJsonData(isGzip ? new GZIPInputStream(is) : is);

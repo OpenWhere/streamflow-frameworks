@@ -1,14 +1,14 @@
 package com.elasticm2m.frameworks.http;
 
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import com.elasticm2m.frameworks.common.base.ElasticBaseRichBolt;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.storm.shade.org.apache.commons.io.IOUtils;
+import org.apache.storm.shade.org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;

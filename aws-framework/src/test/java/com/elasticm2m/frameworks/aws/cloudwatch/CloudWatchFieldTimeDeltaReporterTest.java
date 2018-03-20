@@ -1,17 +1,16 @@
 package com.elasticm2m.frameworks.aws.cloudwatch;
 
-import backtype.storm.Config;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Tuple;
 import com.blacklocus.metrics.CloudWatchReporter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import org.apache.storm.Config;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.tuple.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +19,7 @@ import java.util.Map;
 
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(org.mockito.junit.MockitoJUnitRunner.class)
 public class CloudWatchFieldTimeDeltaReporterTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudWatchFieldTimeDeltaReporterTest.class);
@@ -68,7 +67,7 @@ public class CloudWatchFieldTimeDeltaReporterTest {
 
         when(metricRegistry.histogram("my_name Topology=my_topology Region=my_region")).thenReturn(histogram);
 
-        bolt = new CloudWatchFieldTimeDeltaReporter(){
+        bolt = new CloudWatchFieldTimeDeltaReporter() {
             @Override
             CloudWatchReporter getCloudwatchReporter() {
                 return cloudwatchReporter;

@@ -520,11 +520,17 @@ components:
          description: Last modifed must be at least this old
          required: true
          defaultValue: 60
+       - name: lookback-minutes
+         label: Minutes to lookback at startup
+         type: Integer
+         description: if from date not set, the number of minutes to lookback for data when opening spout
+         required: false
+         defaultValue: 15
        - name: s3-from-date
          label: From Date (inclusive)
          type: text
-         description: Start date to look for in S3 objects
-         required: true
+         description: Start date to look for in S3 objects (defaults to now minus lookback-minutes)
+         required: false
          defaultValue:
        - name: s3-to-date
          label: To Date (exclusive)
@@ -585,11 +591,17 @@ components:
          description: Last modifed must be at least this old
          required: true
          defaultValue: 60
+       - name: lookback-minutes
+         label: Minutes to lookback at startup
+         type: Integer
+         description: if from date not set, the number of minutes to lookback for data when opening spout
+         required: false
+         defaultValue: 15
        - name: s3-from-date
          label: From Date (inclusive)
          type: text
-         description: Start date to look for in S3 objects
-         required: true
+         description: Start date to look for in S3 objects (defaults to now minus lookback-minutes)
+         required: false
          defaultValue:
        - name: s3-to-date
          label: To Date (exclusive)
@@ -644,11 +656,17 @@ components:
          description: Last modifed must be at least this old
          required: true
          defaultValue: 60
+       - name: lookback-minutes
+         label: Minutes to lookback at startup
+         type: Integer
+         description: if from date not set, the number of minutes to lookback for data when opening spout
+         required: false
+         defaultValue: 15
        - name: s3-from-date
          label: From Date (inclusive)
          type: text
-         description: Start date to look for in S3 objects
-         required: true
+         description: Start date to look for in S3 objects (defaults to now minus lookback-minutes)
+         required: false
          defaultValue:
        - name: s3-to-date
          label: To Date (exclusive)
